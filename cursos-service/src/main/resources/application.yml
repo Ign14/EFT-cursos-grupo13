@@ -1,0 +1,56 @@
+spring:
+  application:
+    name: cursos-service
+
+  datasource:
+    url: ${DB_URL:jdbc:h2:file:./data/cursos;DB_CLOSE_ON_EXIT=FALSE}
+    driver-class-name: ${DB_DRIVER:org.h2.Driver}
+    username: ${DB_USERNAME:sa}
+    password: ${DB_PASSWORD:}
+  jpa:
+    hibernate:
+      ddl-auto: update
+    open-in-view: false
+  h2:
+    console:
+      enabled: ${H2_CONSOLE_ENABLED:true}
+      path: /h2-console
+
+  servlet:
+    multipart:
+      max-file-size: 20MB
+      max-request-size: 20MB
+
+server:
+  port: ${SERVER_PORT:8081}
+
+# ---- AWS S3 (credenciales por variables de entorno o rol IAM de la EC2) ----
+aws:
+  region: ${AWS_REGION:us-east-1}
+  accessKeyId: ${AWS_ACCESS_KEY_ID:}
+  secretAccessKey: ${AWS_SECRET_ACCESS_KEY:}
+  sessionToken: ${AWS_SESSION_TOKEN:}
+  s3:
+    bucket: ${AWS_S3_BUCKET:eft-cursos-grupo13}
+
+# ---- Azure AD B2C (IDaaS) ----
+azure:
+  b2c:
+    jwk-set-uri: ${AZURE_B2C_JWK_SET_URI:}
+    issuer: ${AZURE_B2C_ISSUER:}
+    roles-claim: ${AZURE_B2C_ROLES_CLAIM:extension_Role}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: never
+
+logging:
+  level:
+    com.grupo13.cursos: INFO
+    org.springframework.security: INFO
+    software.amazon.awssdk: WARN

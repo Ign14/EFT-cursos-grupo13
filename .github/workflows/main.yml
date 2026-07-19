@@ -1,0 +1,99 @@
+name: CI-CD EFT S9
+
+# Despliegue automatizado al hacer push a la rama principal.
+# Asume que la RAIZ del repositorio es este proyecto (EFT_S9_Grupo13).
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  build-and-push:
+    name: Build & Push imagenes
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        service: [cursos-service, bff-service, frontend]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Login en Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Build & Push ${{ matrix.service }}
+        uses: docker/build-push-action@v6
+        with:
+          context: ./${{ matrix.service }}
+          push: true
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/eft-${{ matrix.service }}:latest
+
+  deploy-ec2:
+    name: Deploy a EC2 (docker compose)
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    steps:
+      - name: Desplegar via SSH
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            set -e
+            U="${{ secrets.DOCKERHUB_USERNAME }}"
+            # Swap para el t3.micro (idempotente): evita OOM con 2 JVMs + rabbitmq
+            if ! sudo swapon --show | grep -q /swapfile; then
+              sudo dd if=/dev/zero of=/swapfile bs=1M count=2048
+              sudo chmod 600 /swapfile && sudo mkswap /swapfile && sudo swapon /swapfile
+            fi
+            mkdir -p ~/eft && cd ~/eft
+            cat > docker-compose.yml <<COMPOSE
+            services:
+              rabbitmq:
+                image: rabbitmq:3-management
+                container_name: eft-rabbitmq
+                ports: ["5672:5672","15672:15672"]
+                environment:
+                  RABBITMQ_DEFAULT_USER: guest
+                  RABBITMQ_DEFAULT_PASS: guest
+                healthcheck:
+                  test: ["CMD","rabbitmq-diagnostics","-q","ping"]
+                  interval: 15s
+                  timeout: 10s
+                  retries: 5
+                mem_limit: 350m
+              cursos-service:
+                image: ${U}/eft-cursos-service:latest
+                container_name: eft-cursos-service
+                ports: ["8081:8081"]
+                mem_limit: 480m
+                environment:
+                  JAVA_TOOL_OPTIONS: "-Xmx256m -XX:MaxMetaspaceSize=128m"
+                  AZURE_B2C_ISSUER: "${{ secrets.AZURE_B2C_ISSUER }}"
+                  AZURE_B2C_JWK_SET_URI: "${{ secrets.AZURE_B2C_JWK_SET_URI }}"
+                  AZURE_B2C_ROLES_CLAIM: "extension_Role"
+                  AWS_REGION: us-east-1
+                  AWS_S3_BUCKET: "${{ secrets.AWS_S3_BUCKET }}"
+              bff-service:
+                image: ${U}/eft-bff-service:latest
+                container_name: eft-bff-service
+                depends_on:
+                  rabbitmq:
+                    condition: service_healthy
+                ports: ["8082:8082"]
+                mem_limit: 480m
+                environment:
+                  JAVA_TOOL_OPTIONS: "-Xmx256m -XX:MaxMetaspaceSize=128m"
+                  RABBITMQ_HOST: rabbitmq
+                  AZURE_B2C_ISSUER: "${{ secrets.AZURE_B2C_ISSUER }}"
+                  AZURE_B2C_JWK_SET_URI: "${{ secrets.AZURE_B2C_JWK_SET_URI }}"
+                  AZURE_B2C_ROLES_CLAIM: "extension_Role"
+              frontend:
+                image: ${U}/eft-frontend:latest
+                container_name: eft-frontend
+                ports: ["8080:80"]
+            COMPOSE
+            docker compose pull
+            docker compose up -d
+            docker image prune -f

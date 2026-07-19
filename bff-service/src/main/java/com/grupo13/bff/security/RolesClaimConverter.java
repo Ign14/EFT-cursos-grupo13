@@ -1,0 +1,37 @@
+package com.grupo13.bff.security;
+
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.convert.converter.Converter;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.stereotype.Component;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+
+@Component
+public class RolesClaimConverter implements Converter<Jwt, Collection<GrantedAuthority>> {
+
+    @Value("${azure.b2c.roles-claim:extension_Role}")
+    private String rolesClaim;
+
+    @Override
+    public Collection<GrantedAuthority> convert(Jwt jwt) {
+        List<GrantedAuthority> authorities = new ArrayList<>();
+        Object raw = jwt.getClaim(rolesClaim);
+        if (raw == null) return authorities;
+        if (raw instanceof String s) {
+            for (String r : s.split("[ ,]+")) add(authorities, r);
+        } else if (raw instanceof Collection<?> col) {
+            for (Object o : col) if (o != null) add(authorities, o.toString());
+        }
+        return authorities;
+    }
+
+    private void add(List<GrantedAuthority> list, String role) {
+        if (role != null && !role.isBlank())
+            list.add(new SimpleGrantedAuthority("ROLE_" + role.trim().toUpperCase()));
+    }
+}

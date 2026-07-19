@@ -1,0 +1,568 @@
+{
+  "info": {
+    "name": "EFT Cursos S9 - Grupo 13",
+    "description": "Pruebas del EFT: cursos-service (8081) y bff-service (8082). Roles ESTUDIANTE/INSTRUCTOR via Azure AD B2C. Cambia baseCursos/baseBff a la Invoke URL del API Gateway para probar en la nube.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseCursos",
+      "value": "http://localhost:8081"
+    },
+    {
+      "key": "baseBff",
+      "value": "http://localhost:8082"
+    },
+    {
+      "key": "tokenInstructor",
+      "value": "PEGA_TOKEN_INSTRUCTOR"
+    },
+    {
+      "key": "tokenEstudiante",
+      "value": "PEGA_TOKEN_ESTUDIANTE"
+    },
+    {
+      "key": "cursoId",
+      "value": "1"
+    }
+  ],
+  "item": [
+    {
+      "name": "0. Sin token - Cursos (401)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseCursos}}/api/cursos",
+          "host": [
+            "{{baseCursos}}"
+          ],
+          "path": [
+            "api",
+            "cursos"
+          ]
+        }
+      }
+    },
+    {
+      "name": "=== CURSOS (INSTRUCTOR) ===",
+      "item": [
+        {
+          "name": "1. Crear curso (POST 201)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenInstructor}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"codigo\": \"CN-101\",\n  \"nombre\": \"Cloud Native 101\",\n  \"descripcion\": \"Curso introductorio\",\n  \"cupos\": 30\n}"
+            },
+            "url": {
+              "raw": "{{baseCursos}}/api/cursos",
+              "host": [
+                "{{baseCursos}}"
+              ],
+              "path": [
+                "api",
+                "cursos"
+              ]
+            }
+          }
+        },
+        {
+          "name": "2. Listar cursos (GET 200)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenInstructor}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseCursos}}/api/cursos",
+              "host": [
+                "{{baseCursos}}"
+              ],
+              "path": [
+                "api",
+                "cursos"
+              ]
+            }
+          }
+        },
+        {
+          "name": "3. Detalle curso (GET 200)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenInstructor}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseCursos}}/api/cursos/{{cursoId}}",
+              "host": [
+                "{{baseCursos}}"
+              ],
+              "path": [
+                "api",
+                "cursos",
+                "{{cursoId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "4. Actualizar curso (PUT 200)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenInstructor}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"descripcion\": \"Curso introductorio (actualizado)\",\n  \"cupos\": 40\n}"
+            },
+            "url": {
+              "raw": "{{baseCursos}}/api/cursos/{{cursoId}}",
+              "host": [
+                "{{baseCursos}}"
+              ],
+              "path": [
+                "api",
+                "cursos",
+                "{{cursoId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "5. Subir material a S3 (POST 200)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenInstructor}}"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "archivo",
+                  "type": "file",
+                  "src": []
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseCursos}}/api/cursos/{{cursoId}}/material",
+              "host": [
+                "{{baseCursos}}"
+              ],
+              "path": [
+                "api",
+                "cursos",
+                "{{cursoId}}",
+                "material"
+              ]
+            }
+          }
+        },
+        {
+          "name": "6. Registrar calificacion (POST 200)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenInstructor}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cursoId\": {{cursoId}},\n  \"estudiante\": \"ignaciomino47+estudiante@gmail.com\",\n  \"examen\": \"Prueba 1\",\n  \"nota\": 6.5\n}"
+            },
+            "url": {
+              "raw": "{{baseCursos}}/api/calificaciones",
+              "host": [
+                "{{baseCursos}}"
+              ],
+              "path": [
+                "api",
+                "calificaciones"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "=== ESTUDIANTE ===",
+      "item": [
+        {
+          "name": "7. Inscribirse a curso (POST 200)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenEstudiante}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cursoId\": {{cursoId}}\n}"
+            },
+            "url": {
+              "raw": "{{baseCursos}}/api/inscripciones",
+              "host": [
+                "{{baseCursos}}"
+              ],
+              "path": [
+                "api",
+                "inscripciones"
+              ]
+            }
+          }
+        },
+        {
+          "name": "8. Mis inscripciones (GET 200)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenEstudiante}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseCursos}}/api/inscripciones/mias",
+              "host": [
+                "{{baseCursos}}"
+              ],
+              "path": [
+                "api",
+                "inscripciones",
+                "mias"
+              ]
+            }
+          }
+        },
+        {
+          "name": "9. Descargar material del curso (GET 200)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenEstudiante}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseCursos}}/api/cursos/{{cursoId}}/material",
+              "host": [
+                "{{baseCursos}}"
+              ],
+              "path": [
+                "api",
+                "cursos",
+                "{{cursoId}}",
+                "material"
+              ]
+            }
+          }
+        },
+        {
+          "name": "10. Mis calificaciones (GET 200)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenEstudiante}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseCursos}}/api/calificaciones/mias",
+              "host": [
+                "{{baseCursos}}"
+              ],
+              "path": [
+                "api",
+                "calificaciones",
+                "mias"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "=== BFF COLAS (RabbitMQ) ===",
+      "item": [
+        {
+          "name": "11. Producir mensaje OK (POST 200)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenInstructor}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tipo\": \"ENTREGA_EXAMEN\",\n  \"cursoId\": {{cursoId}},\n  \"estudiante\": \"est@demo.cl\",\n  \"detalle\": \"entrega examen 1\",\n  \"error\": false\n}"
+            },
+            "url": {
+              "raw": "{{baseBff}}/api/bff/cola/producir",
+              "host": [
+                "{{baseBff}}"
+              ],
+              "path": [
+                "api",
+                "bff",
+                "cola",
+                "producir"
+              ]
+            }
+          }
+        },
+        {
+          "name": "12. Producir mensaje con ERROR (POST 200)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenInstructor}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tipo\": \"ENTREGA_EXAMEN\",\n  \"cursoId\": {{cursoId}},\n  \"estudiante\": \"est@demo.cl\",\n  \"detalle\": \"entrega que fallara\",\n  \"error\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseBff}}/api/bff/cola/producir",
+              "host": [
+                "{{baseBff}}"
+              ],
+              "path": [
+                "api",
+                "bff",
+                "cola",
+                "producir"
+              ]
+            }
+          }
+        },
+        {
+          "name": "13. Consumir cola (POST 200 {procesados,errores})",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenInstructor}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseBff}}/api/bff/cola/consumir",
+              "host": [
+                "{{baseBff}}"
+              ],
+              "path": [
+                "api",
+                "bff",
+                "cola",
+                "consumir"
+              ]
+            }
+          }
+        },
+        {
+          "name": "14. Ver DLQ / errores (GET 200)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenInstructor}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseBff}}/api/bff/cola/errores",
+              "host": [
+                "{{baseBff}}"
+              ],
+              "path": [
+                "api",
+                "bff",
+                "cola",
+                "errores"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "=== ROLES CRUZADOS ===",
+      "item": [
+        {
+          "name": "15. ESTUDIANTE crea curso (403)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenEstudiante}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"codigo\": \"X-1\",\n  \"nombre\": \"no permitido\",\n  \"cupos\": 1\n}"
+            },
+            "url": {
+              "raw": "{{baseCursos}}/api/cursos",
+              "host": [
+                "{{baseCursos}}"
+              ],
+              "path": [
+                "api",
+                "cursos"
+              ]
+            }
+          }
+        },
+        {
+          "name": "16. INSTRUCTOR se inscribe (403)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenInstructor}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cursoId\": {{cursoId}}\n}"
+            },
+            "url": {
+              "raw": "{{baseCursos}}/api/inscripciones",
+              "host": [
+                "{{baseCursos}}"
+              ],
+              "path": [
+                "api",
+                "inscripciones"
+              ]
+            }
+          }
+        },
+        {
+          "name": "17. ESTUDIANTE consume cola (403)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenEstudiante}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseBff}}/api/bff/cola/consumir",
+              "host": [
+                "{{baseBff}}"
+              ],
+              "path": [
+                "api",
+                "bff",
+                "cola",
+                "consumir"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "18. Health cursos (GET 200)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseCursos}}/actuator/health",
+          "host": [
+            "{{baseCursos}}"
+          ],
+          "path": [
+            "actuator",
+            "health"
+          ]
+        }
+      }
+    },
+    {
+      "name": "19. Health bff (GET 200)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseBff}}/actuator/health",
+          "host": [
+            "{{baseBff}}"
+          ],
+          "path": [
+            "actuator",
+            "health"
+          ]
+        }
+      }
+    }
+  ]
+}

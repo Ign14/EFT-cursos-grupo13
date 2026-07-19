@@ -1,0 +1,58 @@
+# Docker Compose - EFT S9 Grupo 13
+# Levanta RabbitMQ + los 2 microservicios + el frontend con un comando:
+#   docker compose up -d --build
+services:
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: eft-rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+
+  cursos-service:
+    build: ./cursos-service
+    container_name: eft-cursos-service
+    ports:
+      - "8081:8081"
+    environment:
+      AZURE_B2C_ISSUER: "https://duocgrupo13.b2clogin.com/3f8624f7-de01-47f3-9fd0-f834f87dc061/v2.0/"
+      AZURE_B2C_JWK_SET_URI: "https://duocgrupo13.b2clogin.com/duocgrupo13.onmicrosoft.com/B2C_1_signupsignin/discovery/v2.0/keys"
+      AZURE_B2C_ROLES_CLAIM: "extension_Role"
+      AWS_REGION: us-east-1
+      AWS_S3_BUCKET: eft-cursos-grupo13
+      # Base de datos: por defecto H2. Para Oracle define DB_URL/DB_DRIVER/DB_USERNAME/DB_PASSWORD.
+
+  bff-service:
+    build: ./bff-service
+    container_name: eft-bff-service
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    ports:
+      - "8082:8082"
+    environment:
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: "5672"
+      RABBITMQ_USER: guest
+      RABBITMQ_PASS: guest
+      AZURE_B2C_ISSUER: "https://duocgrupo13.b2clogin.com/3f8624f7-de01-47f3-9fd0-f834f87dc061/v2.0/"
+      AZURE_B2C_JWK_SET_URI: "https://duocgrupo13.b2clogin.com/duocgrupo13.onmicrosoft.com/B2C_1_signupsignin/discovery/v2.0/keys"
+      AZURE_B2C_ROLES_CLAIM: "extension_Role"
+
+  frontend:
+    build: ./frontend
+    container_name: eft-frontend
+    ports:
+      - "8080:80"
+    depends_on:
+      - cursos-service
+      - bff-service

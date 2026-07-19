@@ -1,0 +1,31 @@
+spring:
+  application:
+    name: bff-service
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USER:guest}
+    password: ${RABBITMQ_PASS:guest}
+
+server:
+  port: ${SERVER_PORT:8082}
+
+azure:
+  b2c:
+    jwk-set-uri: ${AZURE_B2C_JWK_SET_URI:}
+    issuer: ${AZURE_B2C_ISSUER:}
+    roles-claim: ${AZURE_B2C_ROLES_CLAIM:extension_Role}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: never
+
+logging:
+  level:
+    com.grupo13.bff: INFO
+    org.springframework.security: INFO

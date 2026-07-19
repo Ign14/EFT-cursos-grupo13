@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Cursos en linea - EFT S9 Grupo 13</title>
+  <script src="https://cdn.jsdelivr.net/npm/@azure/msal-browser@3.10.0/lib/msal-browser.min.js"></script>
+  <script src="config.js"></script>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 0; background: #f4f6fa; color: #1f2d3d; }
+    header { background: #1f4e79; color: #fff; padding: 16px 24px; }
+    header h1 { margin: 0; font-size: 20px; }
+    main { max-width: 900px; margin: 24px auto; padding: 0 16px; }
+    .card { background: #fff; border: 1px solid #e1e6ee; border-radius: 8px; padding: 16px 20px; margin-bottom: 16px; }
+    button { background: #1f4e79; color: #fff; border: 0; border-radius: 6px; padding: 8px 14px; cursor: pointer; margin-right: 8px; }
+    button.secondary { background: #5b7ea6; }
+    pre { background: #0f1b2a; color: #d6e4f0; padding: 12px; border-radius: 6px; overflow: auto; font-size: 12px; }
+    .muted { color: #6b7a8d; font-size: 13px; }
+    .pill { display:inline-block; background:#e8f0fa; color:#1f4e79; border-radius: 12px; padding: 2px 10px; font-size: 12px; }
+  </style>
+</head>
+<body>
+  <header><h1>Plataforma de Cursos en linea — EFT S9 (Grupo 13)</h1></header>
+  <main>
+    <div class="card">
+      <button id="btnLogin">Iniciar sesion (Azure AD B2C)</button>
+      <button id="btnLogout" class="secondary">Cerrar sesion</button>
+      <span id="userInfo" class="muted"></span>
+    </div>
+
+    <div class="card">
+      <h3>Identidad (token)</h3>
+      <p class="muted">Rol(es) leidos del claim <code>extension_Role</code>:</p>
+      <div id="roles"></div>
+      <pre id="claims">Inicia sesion para ver los claims del token.</pre>
+    </div>
+
+    <div class="card">
+      <h3>Consumir la API (por el gateway/backend)</h3>
+      <button id="btnCursos">GET /api/cursos</button>
+      <button id="btnProducir" class="secondary">POST /api/bff/cola/producir (demo)</button>
+      <pre id="apiOut">Resultado de la API...</pre>
+    </div>
+  </main>
+
+  <script>
+    const CFG = window.EFT_CONFIG;
+    const msalConfig = {
+      auth: {
+        clientId: CFG.b2c.clientId,
+        authority: CFG.b2c.authority,
+        knownAuthorities: [CFG.b2c.knownAuthority],
+        redirectUri: CFG.b2c.redirectUri
+      },
+      cache: { cacheLocation: "sessionStorage" }
+    };
+    const pca = new window.msal.PublicClientApplication(msalConfig);
+    const loginRequest = { scopes: CFG.b2c.scopes };
+
+    let account = null;
+
+    async function init() {
+      await pca.initialize();
+      const resp = await pca.handleRedirectPromise();
+      if (resp && resp.account) account = resp.account;
+      else {
+        const accts = pca.getAllAccounts();
+        if (accts.length) account = accts[0];
+      }
+      render();
+    }
+
+    function render() {
+      document.getElementById("userInfo").textContent =
+        account ? ("Sesion: " + (account.username || account.name || "")) : "Sin sesion";
+      if (account && account.idTokenClaims) {
+        document.getElementById("claims").textContent = JSON.stringify(account.idTokenClaims, null, 2);
+        const rol = account.idTokenClaims["extension_Role"] || "(sin rol)";
+        document.getElementById("roles").innerHTML = '<span class="pill">' + rol + '</span>';
+      }
+    }
+
+    async function getToken() {
+      try {
+        const r = await pca.acquireTokenSilent({ ...loginRequest, account });
+        return r.accessToken;
+      } catch (e) {
+        const r = await pca.acquireTokenPopup(loginRequest);
+        return r.accessToken;
+      }
+    }
+
+    async function callApi(url, method, body) {
+      const token = await getToken();
+      const opts = { method: method || "GET", headers: { "Authorization": "Bearer " + token } };
+      if (body) { opts.headers["Content-Type"] = "application/json"; opts.body = JSON.stringify(body); }
+      const res = await fetch(url, opts);
+      const text = await res.text();
+      document.getElementById("apiOut").textContent =
+        method + " " + url + "  ->  " + res.status + "\n\n" + text;
+    }
+
+    document.getElementById("btnLogin").onclick = async () => {
+      const r = await pca.loginPopup(loginRequest);
+      account = r.account; render();
+    };
+    document.getElementById("btnLogout").onclick = () => pca.logoutPopup();
+    document.getElementById("btnCursos").onclick = () => callApi(CFG.apiCursos + "/api/cursos", "GET");
+    document.getElementById("btnProducir").onclick = () => callApi(CFG.apiBff + "/api/bff/cola/producir", "POST",
+      { tipo: "ENTREGA_EXAMEN", cursoId: 1, estudiante: account ? account.username : "demo", detalle: "entrega desde el frontend", error: false });
+
+    init();
+  </script>
+</body>
+</html>
