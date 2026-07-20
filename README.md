@@ -77,8 +77,12 @@ frontend) para consumir los endpoints protegidos.
 
 `.github/workflows/main.yml` construye las 3 imagenes, las publica en Docker Hub y
 despliega en la EC2 con Docker Compose. Requiere los GitHub Secrets: DOCKERHUB_USERNAME,
-DOCKERHUB_TOKEN, EC2_HOST, EC2_USER, EC2_SSH_KEY, AZURE_B2C_ISSUER, AZURE_B2C_JWK_SET_URI,
-AWS_S3_BUCKET.
+DOCKERHUB_TOKEN, EC2_HOST, EC2_USER, EC2_SSH_KEY, EC2_INSTANCE_ID, AWS_ACCESS_KEY_ID,
+AWS_SECRET_ACCESS_KEY, AWS_REGION, AZURE_B2C_ISSUER, AZURE_B2C_JWK_SET_URI, AWS_S3_BUCKET.
+
+`EC2_INSTANCE_ID`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` y `AWS_REGION` son
+necesarios para iniciar automaticamente la instancia EC2 si esta detenida antes de
+intentar la conexion SSH.
 
 ## Documentacion
 
