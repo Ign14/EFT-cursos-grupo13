@@ -10,8 +10,7 @@ window.EFT_CONFIG = {
     // Scope del access token (el App ID URI / client id de la API)
     scopes: ["openid", "259dff0d-8d49-41ef-8f85-18bebb472ec0"]
   },
-  // Base de la API. En local: http://localhost:8081 (cursos) / :8082 (bff).
-  // En la nube: la Invoke URL del API Gateway.
-  apiCursos: "http://localhost:8081",
-  apiBff:    "http://localhost:8082"
+  // Base de la API por el API Gateway (misma Invoke URL para cursos y bff; el gateway enruta por path).
+  apiCursos: "https://j75s3j3uh6.execute-api.us-east-1.amazonaws.com",
+  apiBff:    "https://j75s3j3uh6.execute-api.us-east-1.amazonaws.com"
 };
