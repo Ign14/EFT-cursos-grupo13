@@ -33,6 +33,36 @@ jobs:
     needs: build-and-push
     runs-on: ubuntu-latest
     steps:
+      - name: Configurar credenciales AWS
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Iniciar instancia EC2 si está detenida
+        run: |
+          STATE=$(aws ec2 describe-instances \
+            --instance-ids ${{ secrets.EC2_INSTANCE_ID }} \
+            --query 'Reservations[0].Instances[0].State.Name' \
+            --output text)
+          echo "Estado actual de la instancia: $STATE"
+          if [ "$STATE" = "stopped" ]; then
+            echo "La instancia está detenida. Iniciando..."
+            aws ec2 start-instances --instance-ids ${{ secrets.EC2_INSTANCE_ID }}
+          fi
+          echo "Esperando a que la instancia esté en estado 'running'..."
+          aws ec2 wait instance-running --instance-ids ${{ secrets.EC2_INSTANCE_ID }}
+          echo "Esperando a que el puerto SSH (22) esté disponible..."
+          for i in $(seq 1 20); do
+            if nc -zw5 ${{ secrets.EC2_HOST }} 22; then
+              echo "SSH disponible."
+              break
+            fi
+            echo "Intento $i/20: SSH no disponible aún. Reintentando en 10s..."
+            sleep 10
+          done
+
       - name: Desplegar via SSH
         uses: appleboy/ssh-action@v1.2.0
         with:
